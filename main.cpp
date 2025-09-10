@@ -7,7 +7,8 @@ struct Pipe{
     float legth;
     int diametr;
     bool repair;
-}
+};
+
 int main(){
     cout << "Hello world!";
     return 0;

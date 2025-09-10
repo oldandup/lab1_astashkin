@@ -1,6 +1,14 @@
 #include <iostream>
+#include <string>
+using namespace std;
 
+struct Pipe{
+    string name;
+    float legth;
+    int diametr;
+    bool repair;
+}
 int main(){
-    std::cout << "Hello world!";
+    cout << "Hello world!";
     return 0;
 }

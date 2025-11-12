@@ -916,6 +916,52 @@ public:
         }
     }
 
+    void EditPipeById() {
+        int id;
+        cout << "\nEnter pipe ID to edit: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            logger.Log("ERROR: Failed to edit pipe - invalid ID");
+            return;
+        }
+
+        Pipe* pipe = pipeManager.FindById(id);
+        if (!pipe) {
+            cout << "Error: Pipe not found.\n";
+            logger.Log("ERROR: Pipe not found for editing - ID: " + to_string(id));
+            return;
+        }
+
+        logger.Log("EDIT PIPE STARTED - ID: " + to_string(id) + ", Old Name: " + pipe->km_mark);
+        EditPipeFields(*pipe);
+        logger.Log("EDIT PIPE COMPLETED - ID: " + to_string(id));
+    }
+
+    void EditCompressById() {
+        int id;
+        cout << "\nEnter CS ID to edit: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            logger.Log("ERROR: Failed to edit CS - invalid ID");
+            return;
+        }
+
+        Compress* station = compressManager.FindById(id);
+        if (!station) {
+            cout << "Error: CS not found.\n";
+            logger.Log("ERROR: CS not found for editing - ID: " + to_string(id));
+            return;
+        }
+
+        logger.Log("EDIT CS STARTED - ID: " + to_string(id) + ", Old Name: " + station->name);
+        EditCompressFields(*station);
+        logger.Log("EDIT CS COMPLETED - ID: " + to_string(id));
+    }
+
 private:
     void EditPipeFields(Pipe& pipe) {
         cout << "\nEditing pipe: " << pipe.km_mark << "\n";
@@ -1246,52 +1292,6 @@ private:
         }
 
         DisplayCompressWithEditOption(results);
-    }
-
-    void EditPipeById() {
-        int id;
-        cout << "\nEnter pipe ID to edit: ";
-        cin >> id;
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            logger.Log("ERROR: Failed to edit pipe - invalid ID");
-            return;
-        }
-
-        Pipe* pipe = pipeManager.FindById(id);
-        if (!pipe) {
-            cout << "Error: Pipe not found.\n";
-            logger.Log("ERROR: Pipe not found for editing - ID: " + to_string(id));
-            return;
-        }
-
-        logger.Log("EDIT PIPE STARTED - ID: " + to_string(id) + ", Old Name: " + pipe->km_mark);
-        EditPipeFields(*pipe);
-        logger.Log("EDIT PIPE COMPLETED - ID: " + to_string(id));
-    }
-
-    void EditCompressById() {
-        int id;
-        cout << "\nEnter CS ID to edit: ";
-        cin >> id;
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            logger.Log("ERROR: Failed to edit CS - invalid ID");
-            return;
-        }
-
-        Compress* station = compressManager.FindById(id);
-        if (!station) {
-            cout << "Error: CS not found.\n";
-            logger.Log("ERROR: CS not found for editing - ID: " + to_string(id));
-            return;
-        }
-
-        logger.Log("EDIT CS STARTED - ID: " + to_string(id) + ", Old Name: " + station->name);
-        EditCompressFields(*station);
-        logger.Log("EDIT CS COMPLETED - ID: " + to_string(id));
     }
 
     void EditSearchResultsPipes(const vector<Pipe>& searchResults) {

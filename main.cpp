@@ -3,6 +3,7 @@
 #include <string>
 #include <iomanip>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -295,6 +296,335 @@ void DeleteCompress(vector<Compress>& stations) {
     cout << "Error: CS with ID " << id << " not found.\n";
 }
 
+void SearchPipeById(const vector<Pipe>& pipes) {
+    int id;
+    cout << "\nEnter pipe ID to search: ";
+    cin >> id;
+    if (cin.fail()) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
+        return;
+    }
+
+    bool found = false;
+    for (const auto& pipe : pipes) {
+        if (pipe.id == id) {
+            cout << "\n===== Search Result =====\n";
+            cout << "ID: " << pipe.id << " | Name: " << pipe.name
+                 << " | Length: " << fixed << setprecision(2) << pipe.length
+                 << " | Diameter: " << pipe.diametr
+                 << " | On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        cout << "Error: Pipe with ID " << id << " not found.\n";
+    }
+}
+
+void SearchPipeByName(const vector<Pipe>& pipes) {
+    string name;
+    cout << "\nEnter pipe name to search: ";
+    cin.ignore();
+    getline(cin, name);
+
+    vector<Pipe> results;
+    for (const auto& pipe : pipes) {
+        if (pipe.name.find(name) != string::npos) {
+            results.push_back(pipe);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No pipes found with name containing: " << name << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results =====\n";
+    for (const auto& pipe : results) {
+        cout << "ID: " << pipe.id << " | Name: " << pipe.name
+             << " | Length: " << fixed << setprecision(2) << pipe.length
+             << " | Diameter: " << pipe.diametr
+             << " | On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchPipeByDiameter(const vector<Pipe>& pipes) {
+    double diameter;
+    cout << "\nEnter diameter to search: ";
+    cin >> diameter;
+    if (cin.fail() || diameter <= 0) {
+        cout << "Error: Invalid diameter.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    vector<Pipe> results;
+    for (const auto& pipe : pipes) {
+        if (pipe.diametr == diameter) {
+            results.push_back(pipe);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No pipes found with diameter: " << diameter << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results (Diameter = " << diameter << ") =====\n";
+    for (const auto& pipe : results) {
+        cout << "ID: " << pipe.id << " | Name: " << pipe.name
+             << " | Length: " << fixed << setprecision(2) << pipe.length
+             << " | Diameter: " << pipe.diametr
+             << " | On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchPipeByRepair(const vector<Pipe>& pipes) {
+    int repair;
+    cout << "\nSearch for pipes on repair? (0 - no, 1 - yes): ";
+    cin >> repair;
+    if (cin.fail() || (repair != 0 && repair != 1)) {
+        cout << "Error: Invalid input.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    vector<Pipe> results;
+    for (const auto& pipe : pipes) {
+        if (pipe.repair == (bool)repair) {
+            results.push_back(pipe);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No pipes found with repair status: " << (repair ? "Yes" : "No") << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results (Repair = " << (repair ? "Yes" : "No") << ") =====\n";
+    for (const auto& pipe : results) {
+        cout << "ID: " << pipe.id << " | Name: " << pipe.name
+             << " | Length: " << fixed << setprecision(2) << pipe.length
+             << " | Diameter: " << pipe.diametr
+             << " | On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchPipe(const vector<Pipe>& pipes) {
+    if (pipes.empty()) {
+        cout << "\nNo pipes available.\n";
+        return;
+    }
+
+    int choice;
+    while (true) {
+        cout << "\n===== Pipe Search Menu =====\n";
+        cout << "1. Search by ID\n";
+        cout << "2. Search by Name\n";
+        cout << "3. Search by Diameter\n";
+        cout << "4. Search by Repair Status\n";
+        cout << "5. Back to Main Menu\n";
+        cout << "Choose search criteria: ";
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid input.\n";
+            continue;
+        }
+
+        switch (choice) {
+        case 1:
+            SearchPipeById(pipes);
+            break;
+        case 2:
+            SearchPipeByName(pipes);
+            break;
+        case 3:
+            SearchPipeByDiameter(pipes);
+            break;
+        case 4:
+            SearchPipeByRepair(pipes);
+            break;
+        case 5:
+            return;
+        default:
+            cout << "Invalid option. Please try again.\n";
+            break;
+        }
+    }
+}
+
+void SearchCompressById(const vector<Compress>& stations) {
+    int id;
+    cout << "\nEnter CS ID to search: ";
+    cin >> id;
+    if (cin.fail()) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
+        return;
+    }
+
+    bool found = false;
+    for (const auto& station : stations) {
+        if (station.id == id) {
+            cout << "\n===== Search Result =====\n";
+            cout << "ID: " << station.id << " | Name: " << station.name
+                 << " | Qty: " << station.count
+                 << " | Working: " << station.count_working
+                 << " | Class: " << station.classification
+                 << " | Active: " << (station.working ? "Yes" : "No") << "\n";
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        cout << "Error: CS with ID " << id << " not found.\n";
+    }
+}
+
+void SearchCompressByName(const vector<Compress>& stations) {
+    string name;
+    cout << "\nEnter CS name to search: ";
+    cin.ignore();
+    getline(cin, name);
+
+    vector<Compress> results;
+    for (const auto& station : stations) {
+        if (station.name.find(name) != string::npos) {
+            results.push_back(station);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No CS found with name containing: " << name << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results =====\n";
+    for (const auto& station : results) {
+        cout << "ID: " << station.id << " | Name: " << station.name
+             << " | Qty: " << station.count
+             << " | Working: " << station.count_working
+             << " | Class: " << station.classification
+             << " | Active: " << (station.working ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchCompressByClassification(const vector<Compress>& stations) {
+    string classification;
+    cout << "\nEnter classification to search: ";
+    cin.ignore();
+    getline(cin, classification);
+
+    vector<Compress> results;
+    for (const auto& station : stations) {
+        if (station.classification.find(classification) != string::npos) {
+            results.push_back(station);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No CS found with classification containing: " << classification << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results =====\n";
+    for (const auto& station : results) {
+        cout << "ID: " << station.id << " | Name: " << station.name
+             << " | Qty: " << station.count
+             << " | Working: " << station.count_working
+             << " | Class: " << station.classification
+             << " | Active: " << (station.working ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchCompressByStatus(const vector<Compress>& stations) {
+    int working;
+    cout << "\nSearch for CS working? (0 - no, 1 - yes): ";
+    cin >> working;
+    if (cin.fail() || (working != 0 && working != 1)) {
+        cout << "Error: Invalid input.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    vector<Compress> results;
+    for (const auto& station : stations) {
+        if (station.working == (bool)working) {
+            results.push_back(station);
+        }
+    }
+
+    if (results.empty()) {
+        cout << "No CS found with working status: " << (working ? "Yes" : "No") << "\n";
+        return;
+    }
+
+    cout << "\n===== Search Results (Working = " << (working ? "Yes" : "No") << ") =====\n";
+    for (const auto& station : results) {
+        cout << "ID: " << station.id << " | Name: " << station.name
+             << " | Qty: " << station.count
+             << " | Working: " << station.count_working
+             << " | Class: " << station.classification
+             << " | Active: " << (station.working ? "Yes" : "No") << "\n";
+    }
+}
+
+void SearchCompress(const vector<Compress>& stations) {
+    if (stations.empty()) {
+        cout << "\nNo CS available.\n";
+        return;
+    }
+
+    int choice;
+    while (true) {
+        cout << "\n===== CS Search Menu =====\n";
+        cout << "1. Search by ID\n";
+        cout << "2. Search by Name\n";
+        cout << "3. Search by Classification\n";
+        cout << "4. Search by Working Status\n";
+        cout << "5. Back to Main Menu\n";
+        cout << "Choose search criteria: ";
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid input.\n";
+            continue;
+        }
+
+        switch (choice) {
+        case 1:
+            SearchCompressById(stations);
+            break;
+        case 2:
+            SearchCompressByName(stations);
+            break;
+        case 3:
+            SearchCompressByClassification(stations);
+            break;
+        case 4:
+            SearchCompressByStatus(stations);
+            break;
+        case 5:
+            return;
+        default:
+            cout << "Invalid option. Please try again.\n";
+            break;
+        }
+    }
+}
+
 void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {
     int choice;
     while (true) {
@@ -303,11 +633,13 @@ void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {
         cout << "2. Edit pipe\n";
         cout << "3. Delete pipe\n";
         cout << "4. View all pipes\n";
-        cout << "5. Add CS\n";
-        cout << "6. Edit CS\n";
-        cout << "7. Delete CS\n";
-        cout << "8. View all CS\n";
-        cout << "9. Exit\n";
+        cout << "5. Search pipes\n";
+        cout << "6. Add CS\n";
+        cout << "7. Edit CS\n";
+        cout << "8. Delete CS\n";
+        cout << "9. View all CS\n";
+        cout << "10. Search CS\n";
+        cout << "11. Exit\n";
         cout << "Choose an option: ";
         cin >> choice;
 
@@ -332,18 +664,24 @@ void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {
             ViewAllPipes(pipes);
             break;
         case 5:
-            AddCompress(stations);
+            SearchPipe(pipes);
             break;
         case 6:
-            EditCompress(stations);
+            AddCompress(stations);
             break;
         case 7:
-            DeleteCompress(stations);
+            EditCompress(stations);
             break;
         case 8:
-            ViewAllCompress(stations);
+            DeleteCompress(stations);
             break;
         case 9:
+            ViewAllCompress(stations);
+            break;
+        case 10:
+            SearchCompress(stations);
+            break;
+        case 11:
             return;
         default:
             cout << "Invalid option. Please try again.\n";

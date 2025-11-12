@@ -6,163 +6,116 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <functional>
 
 using namespace std;
 
-class SearchEngine {
-private:
+template<typename T>
+class GenericSearchEngine {
+protected:
     Logger& logger;
 
 public:
-    SearchEngine(Logger& log) : logger(log) {}
+    GenericSearchEngine(Logger& log) : logger(log) {}
 
-    vector<Pipe> SearchPipesById(const vector<Pipe>& pipes, int id) {
-        vector<Pipe> results;
-        for (const auto& pipe : pipes) {
-            if (pipe.id == id) {
-                results.push_back(pipe);
+    virtual ~GenericSearchEngine() = default;
+
+    vector<T> SearchById(const vector<T>& items, int id) {
+        vector<T> results;
+        for (const auto& item : items) {
+            if (item.id == id) {
+                results.push_back(item);
                 break;
             }
         }
-        logger.Log("SEARCH PIPE BY ID - ID: " + to_string(id) + (results.empty() ? " - No results" : " - Found"));
+        logger.Log("SEARCH BY ID - ID: " + to_string(id) + (results.empty() ? " - No results" : " - Found"));
         return results;
+    }
+
+    vector<T> SearchByCondition(const vector<T>& items, function<bool(const T&)> condition, const string& description) {
+        vector<T> results;
+        for (const auto& item : items) {
+            if (condition(item)) {
+                results.push_back(item);
+            }
+        }
+        stringstream ss;
+        ss << description << " - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+};
+
+class SearchEngine : public GenericSearchEngine<Pipe>, public GenericSearchEngine<Compress> {
+public:
+    SearchEngine(Logger& log) : GenericSearchEngine<Pipe>(log), GenericSearchEngine<Compress>(log) {}
+
+    vector<Pipe> SearchPipesById(const vector<Pipe>& pipes, int id) {
+        return GenericSearchEngine<Pipe>::SearchById(pipes, id);
     }
 
     vector<Pipe> SearchPipesByKmMark(const vector<Pipe>& pipes, const string& kmMark) {
-        vector<Pipe> results;
-        for (const auto& pipe : pipes) {
-            if (pipe.km_mark.find(kmMark) != string::npos) {
-                results.push_back(pipe);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH PIPE BY KM MARK - Query: '" << kmMark << "' - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Pipe>::SearchByCondition(pipes,
+            [&kmMark](const Pipe& p) { return p.km_mark.find(kmMark) != string::npos; },
+            "SEARCH PIPE BY KM MARK - Query: '" + kmMark + "'");
     }
 
     vector<Pipe> SearchPipesByDiameter(const vector<Pipe>& pipes, int diameter) {
-        vector<Pipe> results;
-        for (const auto& pipe : pipes) {
-            if (pipe.diametr == diameter) {
-                results.push_back(pipe);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH PIPE BY DIAMETER - Diameter: " << diameter << " mm - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Pipe>::SearchByCondition(pipes,
+            [diameter](const Pipe& p) { return p.diametr == diameter; },
+            "SEARCH PIPE BY DIAMETER - Diameter: " + to_string(diameter) + " mm");
     }
 
     vector<Pipe> SearchPipesByRepair(const vector<Pipe>& pipes, bool repair) {
-        vector<Pipe> results;
-        for (const auto& pipe : pipes) {
-            if (pipe.repair == repair) {
-                results.push_back(pipe);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH PIPE BY REPAIR STATUS - Status: " << (repair ? "On repair" : "Not on repair")
-           << " - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Pipe>::SearchByCondition(pipes,
+            [repair](const Pipe& p) { return p.repair == repair; },
+            "SEARCH PIPE BY REPAIR STATUS - Status: " + string(repair ? "On repair" : "Not on repair"));
     }
 
     vector<Pipe> SearchPipesByLength(const vector<Pipe>& pipes, double minLength, double maxLength) {
-        vector<Pipe> results;
-        for (const auto& pipe : pipes) {
-            if (pipe.length >= minLength && pipe.length <= maxLength) {
-                results.push_back(pipe);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH PIPE BY LENGTH - Range: " << fixed << setprecision(2) 
-           << minLength << "-" << maxLength << " km - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Pipe>::SearchByCondition(pipes,
+            [minLength, maxLength](const Pipe& p) { return p.length >= minLength && p.length <= maxLength; },
+            "SEARCH PIPE BY LENGTH - Range: " + to_string(minLength) + "-" + to_string(maxLength) + " km");
     }
 
     vector<Compress> SearchCompressById(const vector<Compress>& stations, int id) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.id == id) {
-                results.push_back(station);
-                break;
-            }
-        }
-        logger.Log("SEARCH CS BY ID - ID: " + to_string(id) + (results.empty() ? " - No results" : " - Found"));
-        return results;
+        return GenericSearchEngine<Compress>::SearchById(stations, id);
     }
 
     vector<Compress> SearchCompressByName(const vector<Compress>& stations, const string& name) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.name.find(name) != string::npos) {
-                results.push_back(station);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH CS BY NAME - Query: '" << name << "' - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Compress>::SearchByCondition(stations,
+            [&name](const Compress& c) { return c.name.find(name) != string::npos; },
+            "SEARCH CS BY NAME - Query: '" + name + "'");
     }
 
     vector<Compress> SearchCompressByClassification(const vector<Compress>& stations, const string& classification) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.classification.find(classification) != string::npos) {
-                results.push_back(station);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH CS BY CLASSIFICATION - Query: '" << classification << "' - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Compress>::SearchByCondition(stations,
+            [&classification](const Compress& c) { return c.classification.find(classification) != string::npos; },
+            "SEARCH CS BY CLASSIFICATION - Query: '" + classification + "'");
     }
 
     vector<Compress> SearchCompressByStatus(const vector<Compress>& stations, bool working) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.working == working) {
-                results.push_back(station);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH CS BY STATUS - Status: " << (working ? "Working" : "Not working")
-           << " - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Compress>::SearchByCondition(stations,
+            [working](const Compress& c) { return c.working == working; },
+            "SEARCH CS BY STATUS - Status: " + string(working ? "Working" : "Not working"));
     }
 
     vector<Compress> SearchCompressByWorkshopPercentage(const vector<Compress>& stations, double minPercent, double maxPercent) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.workshop_count > 0) {
-                double percentage = (double)station.workshop_working / station.workshop_count * 100;
-                if (percentage >= minPercent && percentage <= maxPercent) {
-                    results.push_back(station);
+        return GenericSearchEngine<Compress>::SearchByCondition(stations,
+            [minPercent, maxPercent](const Compress& c) { 
+                if (c.workshop_count > 0) {
+                    double percentage = (double)c.workshop_working / c.workshop_count * 100;
+                    return percentage >= minPercent && percentage <= maxPercent;
                 }
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH CS BY WORKSHOP PERCENTAGE - Range: " << fixed << setprecision(1)
-           << minPercent << "%-" << maxPercent << "% - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+                return false;
+            },
+            "SEARCH CS BY WORKSHOP PERCENTAGE - Range: " + to_string(minPercent) + "%-" + to_string(maxPercent) + "%");
     }
 
     vector<Compress> SearchCompressByWorkshopCount(const vector<Compress>& stations, int minCount, int maxCount) {
-        vector<Compress> results;
-        for (const auto& station : stations) {
-            if (station.workshop_working >= minCount && station.workshop_working <= maxCount) {
-                results.push_back(station);
-            }
-        }
-        stringstream ss;
-        ss << "SEARCH CS BY WORKING WORKSHOPS - Range: " << minCount << "-" << maxCount 
-           << " - Found: " << results.size();
-        logger.Log(ss.str());
-        return results;
+        return GenericSearchEngine<Compress>::SearchByCondition(stations,
+            [minCount, maxCount](const Compress& c) { return c.workshop_working >= minCount && c.workshop_working <= maxCount; },
+            "SEARCH CS BY WORKING WORKSHOPS - Range: " + to_string(minCount) + "-" + to_string(maxCount));
     }
 };
 

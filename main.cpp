@@ -7,6 +7,7 @@
 using namespace std;
 
 struct Pipe {
+    int id;
     string name;
     double length;
     double diametr;
@@ -14,6 +15,7 @@ struct Pipe {
 };
 
 struct Compress {
+    int id;
     string name;
     int count;
     int count_working;
@@ -21,8 +23,12 @@ struct Compress {
     bool working;
 };
 
+int nextPipeId = 1;
+int nextCompressId = 1;
+
 void AddPipe(vector<Pipe>& pipes) {
     Pipe newPipe;
+    newPipe.id = nextPipeId++;
     cout << "\nPipe parameters:\n";
     cout << "Enter name: ";
     cin.ignore();
@@ -55,11 +61,12 @@ void AddPipe(vector<Pipe>& pipes) {
         return;
     }
     pipes.push_back(newPipe);
-    cout << "Pipe added successfully!\n";
+    cout << "Pipe added successfully! (ID: " << newPipe.id << ")\n";
 }
 
 void AddCompress(vector<Compress>& stations) {
     Compress newStation;
+    newStation.id = nextCompressId++;
     cout << "\nCS parameters:\n";
     cout << "Enter name: ";
     cin.ignore();
@@ -96,7 +103,7 @@ void AddCompress(vector<Compress>& stations) {
         return;
     }
     stations.push_back(newStation);
-    cout << "CS added successfully!\n";
+    cout << "CS added successfully! (ID: " << newStation.id << ")\n";
 }
 
 void ViewAllPipes(const vector<Pipe>& pipes) {
@@ -106,7 +113,7 @@ void ViewAllPipes(const vector<Pipe>& pipes) {
     }
     cout << "\n===== All Pipes =====\n";
     for (size_t i = 0; i < pipes.size(); i++) {
-        cout << "[" << i << "] Name: " << pipes[i].name
+        cout << "ID: " << pipes[i].id << " | Name: " << pipes[i].name
              << " | Length: " << fixed << setprecision(2) << pipes[i].length
              << " | Diameter: " << pipes[i].diametr
              << " | On repair: " << (pipes[i].repair ? "Yes" : "No") << "\n";
@@ -120,7 +127,7 @@ void ViewAllCompress(const vector<Compress>& stations) {
     }
     cout << "\n===== All CS =====\n";
     for (size_t i = 0; i < stations.size(); i++) {
-        cout << "[" << i << "] Name: " << stations[i].name
+        cout << "ID: " << stations[i].id << " | Name: " << stations[i].name
              << " | Qty: " << stations[i].count
              << " | Working: " << stations[i].count_working
              << " | Class: " << stations[i].classification
@@ -132,136 +139,160 @@ void EditPipe(vector<Pipe>& pipes) {
     ViewAllPipes(pipes);
     if (pipes.empty()) return;
 
-    int index;
-    cout << "\nEnter pipe index to edit: ";
-    cin >> index;
-    if (cin.fail() || index < 0 || index >= (int)pipes.size()) {
-        cout << "Error: Invalid index.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "\nEditing pipe: " << pipes[index].name << "\n";
-    cout << "Enter new name: ";
-    cin.ignore();
-    getline(cin, pipes[index].name);
-
-    cout << "Enter new length: ";
-    cin >> pipes[index].length;
-    if (cin.fail() || pipes[index].length <= 0) {
-        cout << "Error: Invalid length.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "Enter new diameter: ";
-    cin >> pipes[index].diametr;
-    if (cin.fail() || pipes[index].diametr <= 0) {
-        cout << "Error: Invalid diameter.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "On repair? (0 - no, 1 - yes): ";
-    cin >> pipes[index].repair;
+    int id;
+    cout << "\nEnter pipe ID to edit: ";
+    cin >> id;
     if (cin.fail()) {
-        cout << "Error: Invalid input.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
         return;
     }
-    cout << "Pipe updated successfully!\n";
+
+    for (auto& pipe : pipes) {
+        if (pipe.id == id) {
+            cout << "\nEditing pipe: " << pipe.name << "\n";
+            cout << "Enter new name: ";
+            cin.ignore();
+            getline(cin, pipe.name);
+
+            cout << "Enter new length: ";
+            cin >> pipe.length;
+            if (cin.fail() || pipe.length <= 0) {
+                cout << "Error: Invalid length.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+
+            cout << "Enter new diameter: ";
+            cin >> pipe.diametr;
+            if (cin.fail() || pipe.diametr <= 0) {
+                cout << "Error: Invalid diameter.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+
+            cout << "On repair? (0 - no, 1 - yes): ";
+            cin >> pipe.repair;
+            if (cin.fail()) {
+                cout << "Error: Invalid input.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+            cout << "Pipe updated successfully!\n";
+            return;
+        }
+    }
+    cout << "Error: Pipe with ID " << id << " not found.\n";
 }
 
 void EditCompress(vector<Compress>& stations) {
     ViewAllCompress(stations);
     if (stations.empty()) return;
 
-    int index;
-    cout << "\nEnter CS index to edit: ";
-    cin >> index;
-    if (cin.fail() || index < 0 || index >= (int)stations.size()) {
-        cout << "Error: Invalid index.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "\nEditing CS: " << stations[index].name << "\n";
-    cout << "Enter new name: ";
-    cin.ignore();
-    getline(cin, stations[index].name);
-
-    cout << "Enter new quantity: ";
-    cin >> stations[index].count;
-    if (cin.fail() || stations[index].count < 0) {
-        cout << "Error: Invalid input.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "Enter quantity on working: ";
-    cin >> stations[index].count_working;
-    if (cin.fail() || stations[index].count_working < 0 || stations[index].count_working > stations[index].count) {
-        cout << "Error: Invalid input.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cout << "Enter new classification: ";
-    cin.ignore();
-    getline(cin, stations[index].classification);
-
-    cout << "Is CS working? (0 - no, 1 - yes): ";
-    cin >> stations[index].working;
+    int id;
+    cout << "\nEnter CS ID to edit: ";
+    cin >> id;
     if (cin.fail()) {
-        cout << "Error: Invalid input.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
         return;
     }
-    cout << "CS updated successfully!\n";
+
+    for (auto& station : stations) {
+        if (station.id == id) {
+            cout << "\nEditing CS: " << station.name << "\n";
+            cout << "Enter new name: ";
+            cin.ignore();
+            getline(cin, station.name);
+
+            cout << "Enter new quantity: ";
+            cin >> station.count;
+            if (cin.fail() || station.count < 0) {
+                cout << "Error: Invalid input.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+
+            cout << "Enter quantity on working: ";
+            cin >> station.count_working;
+            if (cin.fail() || station.count_working < 0 || station.count_working > station.count) {
+                cout << "Error: Invalid input.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+
+            cout << "Enter new classification: ";
+            cin.ignore();
+            getline(cin, station.classification);
+
+            cout << "Is CS working? (0 - no, 1 - yes): ";
+            cin >> station.working;
+            if (cin.fail()) {
+                cout << "Error: Invalid input.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return;
+            }
+            cout << "CS updated successfully!\n";
+            return;
+        }
+    }
+    cout << "Error: CS with ID " << id << " not found.\n";
 }
 
 void DeletePipe(vector<Pipe>& pipes) {
     ViewAllPipes(pipes);
     if (pipes.empty()) return;
 
-    int index;
-    cout << "\nEnter pipe index to delete: ";
-    cin >> index;
-    if (cin.fail() || index < 0 || index >= (int)pipes.size()) {
-        cout << "Error: Invalid index.\n";
+    int id;
+    cout << "\nEnter pipe ID to delete: ";
+    cin >> id;
+    if (cin.fail()) {
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
         return;
     }
 
-    pipes.erase(pipes.begin() + index);
-    cout << "Pipe deleted successfully!\n";
+    for (size_t i = 0; i < pipes.size(); i++) {
+        if (pipes[i].id == id) {
+            pipes.erase(pipes.begin() + i);
+            cout << "Pipe deleted successfully!\n";
+            return;
+        }
+    }
+    cout << "Error: Pipe with ID " << id << " not found.\n";
 }
 
 void DeleteCompress(vector<Compress>& stations) {
     ViewAllCompress(stations);
     if (stations.empty()) return;
 
-    int index;
-    cout << "\nEnter CS index to delete: ";
-    cin >> index;
-    if (cin.fail() || index < 0 || index >= (int)stations.size()) {
-        cout << "Error: Invalid index.\n";
+    int id;
+    cout << "\nEnter CS ID to delete: ";
+    cin >> id;
+    if (cin.fail()) {
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Error: Invalid input.\n";
         return;
     }
 
-    stations.erase(stations.begin() + index);
-    cout << "CS deleted successfully!\n";
+    for (size_t i = 0; i < stations.size(); i++) {
+        if (stations[i].id == id) {
+            stations.erase(stations.begin() + i);
+            cout << "CS deleted successfully!\n";
+            return;
+        }
+    }
+    cout << "Error: CS with ID " << id << " not found.\n";
 }
 
 void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {

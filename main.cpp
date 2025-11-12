@@ -13,19 +13,19 @@ using namespace std;
 
 struct Pipe {
     int id;
-    string name;
-    double length;
-    double diametr;
-    bool repair;
+    string km_mark;           // километровая отметка (название)
+    double length;            // длина в км
+    int diametr;              // диаметр в мм
+    bool repair;              // признак "в ремонте"
 };
 
 struct Compress {
     int id;
-    string name;
-    int count;
-    int count_working;
-    string classification;
-    bool working;
+    string name;              // название
+    int workshop_count;       // количество цехов
+    int workshop_working;     // количество цехов в работе
+    string classification;    // класс станции
+    bool working;             // статус работы
 };
 
 // Logger class for centralized logging
@@ -90,9 +90,9 @@ public:
         pipes.push_back(newPipe);
         
         stringstream ss;
-        ss << "ADDED PIPE - ID: " << newPipe.id << ", Name: " << newPipe.name 
-           << ", Length: " << fixed << setprecision(2) << newPipe.length 
-           << ", Diameter: " << newPipe.diametr 
+        ss << "ADDED PIPE - ID: " << newPipe.id << ", KM Mark: " << newPipe.km_mark 
+           << ", Length: " << fixed << setprecision(2) << newPipe.length << " km"
+           << ", Diameter: " << newPipe.diametr << " mm"
            << ", On repair: " << (newPipe.repair ? "Yes" : "No");
         logger.Log(ss.str());
     }
@@ -108,9 +108,9 @@ public:
         for (size_t i = 0; i < pipes.size(); i++) {
             if (pipes[i].id == id) {
                 stringstream ss;
-                ss << "DELETED PIPE - ID: " << pipes[i].id << ", Name: " << pipes[i].name 
-                   << ", Length: " << fixed << setprecision(2) << pipes[i].length 
-                   << ", Diameter: " << pipes[i].diametr;
+                ss << "DELETED PIPE - ID: " << pipes[i].id << ", KM Mark: " << pipes[i].km_mark 
+                   << ", Length: " << fixed << setprecision(2) << pipes[i].length << " km"
+                   << ", Diameter: " << pipes[i].diametr << " mm";
                 logger.Log(ss.str());
                 pipes.erase(pipes.begin() + i);
                 return true;
@@ -140,7 +140,8 @@ public:
         
         stringstream ss;
         ss << "ADDED CS - ID: " << newStation.id << ", Name: " << newStation.name 
-           << ", Qty: " << newStation.count << ", Working: " << newStation.count_working 
+           << ", Workshops: " << newStation.workshop_count 
+           << ", Working: " << newStation.workshop_working
            << ", Class: " << newStation.classification 
            << ", Active: " << (newStation.working ? "Yes" : "No");
         logger.Log(ss.str());
@@ -158,7 +159,8 @@ public:
             if (stations[i].id == id) {
                 stringstream ss;
                 ss << "DELETED CS - ID: " << stations[i].id << ", Name: " << stations[i].name 
-                   << ", Qty: " << stations[i].count << ", Working: " << stations[i].count_working;
+                   << ", Workshops: " << stations[i].workshop_count 
+                   << ", Working: " << stations[i].workshop_working;
                 logger.Log(ss.str());
                 stations.erase(stations.begin() + i);
                 return true;
@@ -324,9 +326,9 @@ private:
         
         for (const auto& pipe : pipes) {
             file << "ID: " << pipe.id << "\n";
-            file << "Name: " << pipe.name << "\n";
-            file << "Length: " << fixed << setprecision(2) << pipe.length << "\n";
-            file << "Diameter: " << pipe.diametr << "\n";
+            file << "KM Mark: " << pipe.km_mark << "\n";
+            file << "Length (km): " << fixed << setprecision(2) << pipe.length << "\n";
+            file << "Diameter (mm): " << pipe.diametr << "\n";
             file << "On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
             file << "~~~\n\n";
         }
@@ -340,8 +342,8 @@ private:
         for (const auto& station : stations) {
             file << "ID: " << station.id << "\n";
             file << "Name: " << station.name << "\n";
-            file << "Quantity: " << station.count << "\n";
-            file << "Working: " << station.count_working << "\n";
+            file << "Workshops: " << station.workshop_count << "\n";
+            file << "Working: " << station.workshop_working << "\n";
             file << "Classification: " << station.classification << "\n";
             file << "Active: " << (station.working ? "Yes" : "No") << "\n";
             file << "~~~\n\n";
@@ -353,14 +355,14 @@ private:
             pipe.id = stoi(line.substr(4));
             inPipe = true;
         }
-        else if (line.find("Name: ") == 0 && inPipe) {
-            pipe.name = line.substr(6);
+        else if (line.find("KM Mark: ") == 0 && inPipe) {
+            pipe.km_mark = line.substr(9);
         }
-        else if (line.find("Length: ") == 0 && inPipe) {
-            pipe.length = stod(line.substr(8));
+        else if (line.find("Length (km): ") == 0 && inPipe) {
+            pipe.length = stod(line.substr(13));
         }
-        else if (line.find("Diameter: ") == 0 && inPipe) {
-            pipe.diametr = stod(line.substr(10));
+        else if (line.find("Diameter (mm): ") == 0 && inPipe) {
+            pipe.diametr = stoi(line.substr(15));
         }
         else if (line.find("On repair: ") == 0 && inPipe) {
             pipe.repair = (line.substr(11) == "Yes");
@@ -375,11 +377,11 @@ private:
         else if (line.find("Name: ") == 0 && inStation) {
             station.name = line.substr(6);
         }
-        else if (line.find("Quantity: ") == 0 && inStation) {
-            station.count = stoi(line.substr(10));
+        else if (line.find("Workshops: ") == 0 && inStation) {
+            station.workshop_count = stoi(line.substr(11));
         }
         else if (line.find("Working: ") == 0 && inStation) {
-            station.count_working = stoi(line.substr(9));
+            station.workshop_working = stoi(line.substr(9));
         }
         else if (line.find("Classification: ") == 0 && inStation) {
             station.classification = line.substr(16);
@@ -390,6 +392,119 @@ private:
     }
 };
 
+// Search class for finding items by various criteria
+class SearchEngine {
+private:
+    Logger& logger;
+
+public:
+    SearchEngine(Logger& log) : logger(log) {}
+
+    vector<Pipe> SearchPipesById(const vector<Pipe>& pipes, int id) {
+        vector<Pipe> results;
+        for (const auto& pipe : pipes) {
+            if (pipe.id == id) {
+                results.push_back(pipe);
+                break;
+            }
+        }
+        logger.Log("SEARCH PIPE BY ID - ID: " + to_string(id) + (results.empty() ? " - No results" : " - Found"));
+        return results;
+    }
+
+    vector<Pipe> SearchPipesByKmMark(const vector<Pipe>& pipes, const string& kmMark) {
+        vector<Pipe> results;
+        for (const auto& pipe : pipes) {
+            if (pipe.km_mark.find(kmMark) != string::npos) {
+                results.push_back(pipe);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH PIPE BY KM MARK - Query: '" << kmMark << "' - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Pipe> SearchPipesByDiameter(const vector<Pipe>& pipes, int diameter) {
+        vector<Pipe> results;
+        for (const auto& pipe : pipes) {
+            if (pipe.diametr == diameter) {
+                results.push_back(pipe);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH PIPE BY DIAMETER - Diameter: " << diameter << " mm - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Pipe> SearchPipesByRepair(const vector<Pipe>& pipes, bool repair) {
+        vector<Pipe> results;
+        for (const auto& pipe : pipes) {
+            if (pipe.repair == repair) {
+                results.push_back(pipe);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH PIPE BY REPAIR STATUS - Status: " << (repair ? "On repair" : "Not on repair")
+           << " - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Compress> SearchCompressById(const vector<Compress>& stations, int id) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.id == id) {
+                results.push_back(station);
+                break;
+            }
+        }
+        logger.Log("SEARCH CS BY ID - ID: " + to_string(id) + (results.empty() ? " - No results" : " - Found"));
+        return results;
+    }
+
+    vector<Compress> SearchCompressByName(const vector<Compress>& stations, const string& name) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.name.find(name) != string::npos) {
+                results.push_back(station);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH CS BY NAME - Query: '" << name << "' - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Compress> SearchCompressByClassification(const vector<Compress>& stations, const string& classification) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.classification.find(classification) != string::npos) {
+                results.push_back(station);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH CS BY CLASSIFICATION - Query: '" << classification << "' - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Compress> SearchCompressByStatus(const vector<Compress>& stations, bool working) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.working == working) {
+                results.push_back(station);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH CS BY STATUS - Status: " << (working ? "Working" : "Not working")
+           << " - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+};
+
 // UI Controller class
 class UIController {
 private:
@@ -397,19 +512,20 @@ private:
     CompressManager& compressManager;
     Logger& logger;
     FileManager& fileManager;
+    SearchEngine searchEngine;
 
 public:
     UIController(PipeManager& pm, CompressManager& cm, Logger& log, FileManager& fm)
-        : pipeManager(pm), compressManager(cm), logger(log), fileManager(fm) {}
+        : pipeManager(pm), compressManager(cm), logger(log), fileManager(fm), searchEngine(log) {}
 
     void AddPipe() {
         Pipe pipe = {};
         cout << "\nPipe parameters:\n";
-        cout << "Enter name: ";
+        cout << "Enter KM mark (name): ";
         cin.ignore();
-        getline(cin, pipe.name);
+        getline(cin, pipe.km_mark);
 
-        cout << "Enter length: ";
+        cout << "Enter length (km): ";
         cin >> pipe.length;
         if (cin.fail() || pipe.length <= 0) {
             cout << "Error: Invalid length.\n";
@@ -419,7 +535,7 @@ public:
             return;
         }
 
-        cout << "Enter diameter: ";
+        cout << "Enter diameter (mm): ";
         cin >> pipe.diametr;
         if (cin.fail() || pipe.diametr <= 0) {
             cout << "Error: Invalid diameter.\n";
@@ -450,19 +566,19 @@ public:
         cin.ignore();
         getline(cin, station.name);
 
-        cout << "Enter quantity: ";
-        cin >> station.count;
-        if (cin.fail() || station.count < 0) {
+        cout << "Enter workshop quantity: ";
+        cin >> station.workshop_count;
+        if (cin.fail() || station.workshop_count < 0) {
             cout << "Error: Invalid quantity.\n";
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            logger.Log("ERROR: Failed to add CS - invalid quantity");
+            logger.Log("ERROR: Failed to add CS - invalid workshop quantity");
             return;
         }
 
-        cout << "Enter quantity on working: ";
-        cin >> station.count_working;
-        if (cin.fail() || station.count_working < 0 || station.count_working > station.count) {
+        cout << "Enter workshops in work: ";
+        cin >> station.workshop_working;
+        if (cin.fail() || station.workshop_working < 0 || station.workshop_working > station.workshop_count) {
             cout << "Error: Invalid working quantity.\n";
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -496,9 +612,9 @@ public:
         }
         cout << "\n===== All Pipes =====\n";
         for (const auto& pipe : pipes) {
-            cout << "ID: " << pipe.id << " | Name: " << pipe.name
-                 << " | Length: " << fixed << setprecision(2) << pipe.length
-                 << " | Diameter: " << pipe.diametr
+            cout << "ID: " << pipe.id << " | KM: " << pipe.km_mark
+                 << " | Length: " << fixed << setprecision(2) << pipe.length << " km"
+                 << " | Diameter: " << pipe.diametr << " mm"
                  << " | On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
         }
         logger.Log("VIEWED ALL PIPES - Total: " + to_string(pipes.size()));
@@ -513,8 +629,8 @@ public:
         cout << "\n===== All CS =====\n";
         for (const auto& station : stations) {
             cout << "ID: " << station.id << " | Name: " << station.name
-                 << " | Qty: " << station.count
-                 << " | Working: " << station.count_working
+                 << " | Workshops: " << station.workshop_count
+                 << " | Working: " << station.workshop_working
                  << " | Class: " << station.classification
                  << " | Active: " << (station.working ? "Yes" : "No") << "\n";
         }
@@ -540,7 +656,7 @@ public:
             return;
         }
 
-        logger.Log("EDIT PIPE STARTED - ID: " + to_string(id) + ", Old Name: " + pipe->name);
+        logger.Log("EDIT PIPE STARTED - ID: " + to_string(id) + ", Old Name: " + pipe->km_mark);
         EditPipeFields(*pipe);
         logger.Log("EDIT PIPE COMPLETED - ID: " + to_string(id));
     }
@@ -621,14 +737,106 @@ public:
         logger.ViewLogs();
     }
 
+    void SearchPipes() {
+        const auto& pipes = pipeManager.GetAll();
+        if (pipes.empty()) {
+            cout << "\nNo pipes available.\n";
+            return;
+        }
+
+        int choice;
+        while (true) {
+            cout << "\n===== Pipe Search Menu =====\n";
+            cout << "1. Search by ID\n";
+            cout << "2. Search by KM Mark\n";
+            cout << "3. Search by Diameter\n";
+            cout << "4. Search by Repair Status\n";
+            cout << "5. Back to Main Menu\n";
+            cout << "Choose search criteria: ";
+            cin >> choice;
+
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Error: Invalid input.\n";
+                continue;
+            }
+
+            switch (choice) {
+            case 1:
+                SearchPipesById();
+                break;
+            case 2:
+                SearchPipesByKmMark();
+                break;
+            case 3:
+                SearchPipesByDiameter();
+                break;
+            case 4:
+                SearchPipesByRepair();
+                break;
+            case 5:
+                return;
+            default:
+                cout << "Invalid option. Please try again.\n";
+            }
+        }
+    }
+
+    void SearchCompress() {
+        const auto& stations = compressManager.GetAll();
+        if (stations.empty()) {
+            cout << "\nNo CS available.\n";
+            return;
+        }
+
+        int choice;
+        while (true) {
+            cout << "\n===== CS Search Menu =====\n";
+            cout << "1. Search by ID\n";
+            cout << "2. Search by Name\n";
+            cout << "3. Search by Classification\n";
+            cout << "4. Search by Working Status\n";
+            cout << "5. Back to Main Menu\n";
+            cout << "Choose search criteria: ";
+            cin >> choice;
+
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Error: Invalid input.\n";
+                continue;
+            }
+
+            switch (choice) {
+            case 1:
+                SearchCompressById();
+                break;
+            case 2:
+                SearchCompressByName();
+                break;
+            case 3:
+                SearchCompressByClassification();
+                break;
+            case 4:
+                SearchCompressByStatus();
+                break;
+            case 5:
+                return;
+            default:
+                cout << "Invalid option. Please try again.\n";
+            }
+        }
+    }
+
 private:
     void EditPipeFields(Pipe& pipe) {
-        cout << "\nEditing pipe: " << pipe.name << "\n";
-        cout << "Enter new name: ";
+        cout << "\nEditing pipe: " << pipe.km_mark << "\n";
+        cout << "Enter new KM mark: ";
         cin.ignore();
-        getline(cin, pipe.name);
+        getline(cin, pipe.km_mark);
 
-        cout << "Enter new length: ";
+        cout << "Enter new length (km): ";
         cin >> pipe.length;
         if (cin.fail() || pipe.length <= 0) {
             cout << "Error: Invalid length.\n";
@@ -637,7 +845,7 @@ private:
             return;
         }
 
-        cout << "Enter new diameter: ";
+        cout << "Enter new diameter (mm): ";
         cin >> pipe.diametr;
         if (cin.fail() || pipe.diametr <= 0) {
             cout << "Error: Invalid diameter.\n";
@@ -664,18 +872,18 @@ private:
         cin.ignore();
         getline(cin, station.name);
 
-        cout << "Enter new quantity: ";
-        cin >> station.count;
-        if (cin.fail() || station.count < 0) {
+        cout << "Enter new workshop quantity: ";
+        cin >> station.workshop_count;
+        if (cin.fail() || station.workshop_count < 0) {
             cout << "Error: Invalid quantity.\n";
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             return;
         }
 
-        cout << "Enter quantity on working: ";
-        cin >> station.count_working;
-        if (cin.fail() || station.count_working < 0 || station.count_working > station.count) {
+        cout << "Enter workshops in work: ";
+        cin >> station.workshop_working;
+        if (cin.fail() || station.workshop_working < 0 || station.workshop_working > station.workshop_count) {
             cout << "Error: Invalid working quantity.\n";
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -696,6 +904,172 @@ private:
         }
 
         cout << "CS updated successfully!\n";
+    }
+
+    void DisplayPipes(const vector<Pipe>& pipes) {
+        cout << "\n===== Search Results =====\n";
+        for (size_t i = 0; i < pipes.size(); i++) {
+            cout << "[" << i << "] ID: " << pipes[i].id << " | KM: " << pipes[i].km_mark
+                 << " | Length: " << fixed << setprecision(2) << pipes[i].length << " km"
+                 << " | Diameter: " << pipes[i].diametr << " mm"
+                 << " | On repair: " << (pipes[i].repair ? "Yes" : "No") << "\n";
+        }
+    }
+
+    void DisplayCompress(const vector<Compress>& stations) {
+        cout << "\n===== Search Results =====\n";
+        for (size_t i = 0; i < stations.size(); i++) {
+            cout << "[" << i << "] ID: " << stations[i].id << " | Name: " << stations[i].name
+                 << " | Workshops: " << stations[i].workshop_count
+                 << " | Working: " << stations[i].workshop_working
+                 << " | Class: " << stations[i].classification
+                 << " | Active: " << (stations[i].working ? "Yes" : "No") << "\n";
+        }
+    }
+
+    void SearchPipesById() {
+        int id;
+        cout << "\nEnter pipe ID to search: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid input.\n";
+            return;
+        }
+
+        auto results = searchEngine.SearchPipesById(pipeManager.GetAll(), id);
+        if (results.empty()) {
+            cout << "No pipes found with ID: " << id << "\n";
+            return;
+        }
+
+        DisplayPipes(results);
+    }
+
+    void SearchPipesByKmMark() {
+        string kmMark;
+        cout << "\nEnter KM mark to search: ";
+        cin.ignore();
+        getline(cin, kmMark);
+
+        auto results = searchEngine.SearchPipesByKmMark(pipeManager.GetAll(), kmMark);
+        if (results.empty()) {
+            cout << "No pipes found with KM mark containing: " << kmMark << "\n";
+            return;
+        }
+
+        DisplayPipes(results);
+    }
+
+    void SearchPipesByDiameter() {
+        int diameter;
+        cout << "\nEnter diameter (mm) to search: ";
+        cin >> diameter;
+        if (cin.fail() || diameter <= 0) {
+            cout << "Error: Invalid diameter.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchPipesByDiameter(pipeManager.GetAll(), diameter);
+        if (results.empty()) {
+            cout << "No pipes found with diameter: " << diameter << " mm\n";
+            return;
+        }
+
+        DisplayPipes(results);
+    }
+
+    void SearchPipesByRepair() {
+        int repair;
+        cout << "\nSearch for pipes on repair? (0 - no, 1 - yes): ";
+        cin >> repair;
+        if (cin.fail() || (repair != 0 && repair != 1)) {
+            cout << "Error: Invalid input.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchPipesByRepair(pipeManager.GetAll(), repair != 0);
+        if (results.empty()) {
+            cout << "No pipes found with repair status: " << (repair ? "Yes" : "No") << "\n";
+            return;
+        }
+
+        DisplayPipes(results);
+    }
+
+    void SearchCompressById() {
+        int id;
+        cout << "\nEnter CS ID to search: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid input.\n";
+            return;
+        }
+
+        auto results = searchEngine.SearchCompressById(compressManager.GetAll(), id);
+        if (results.empty()) {
+            cout << "No CS found with ID: " << id << "\n";
+            return;
+        }
+
+        DisplayCompress(results);
+    }
+
+    void SearchCompressByName() {
+        string name;
+        cout << "\nEnter CS name to search: ";
+        cin.ignore();
+        getline(cin, name);
+
+        auto results = searchEngine.SearchCompressByName(compressManager.GetAll(), name);
+        if (results.empty()) {
+            cout << "No CS found with name containing: " << name << "\n";
+            return;
+        }
+
+        DisplayCompress(results);
+    }
+
+    void SearchCompressByClassification() {
+        string classification;
+        cout << "\nEnter classification to search: ";
+        cin.ignore();
+        getline(cin, classification);
+
+        auto results = searchEngine.SearchCompressByClassification(compressManager.GetAll(), classification);
+        if (results.empty()) {
+            cout << "No CS found with classification containing: " << classification << "\n";
+            return;
+        }
+
+        DisplayCompress(results);
+    }
+
+    void SearchCompressByStatus() {
+        int working;
+        cout << "\nSearch for CS working? (0 - no, 1 - yes): ";
+        cin >> working;
+        if (cin.fail() || (working != 0 && working != 1)) {
+            cout << "Error: Invalid input.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchCompressByStatus(compressManager.GetAll(), working != 0);
+        if (results.empty()) {
+            cout << "No CS found with working status: " << (working ? "Yes" : "No") << "\n";
+            return;
+        }
+
+        DisplayCompress(results);
     }
 };
 
@@ -731,14 +1105,16 @@ public:
             cout << "2. Edit pipe\n";
             cout << "3. Delete pipe\n";
             cout << "4. View all pipes\n";
-            cout << "5. Add CS\n";
-            cout << "6. Edit CS\n";
-            cout << "7. Delete CS\n";
-            cout << "8. View all CS\n";
-            cout << "9. Save all data to file\n";
-            cout << "10. Load all data from file\n";
-            cout << "11. View Operation Logs\n";
-            cout << "12. Exit\n";
+            cout << "5. Search pipes\n";
+            cout << "6. Add CS\n";
+            cout << "7. Edit CS\n";
+            cout << "8. Delete CS\n";
+            cout << "9. View all CS\n";
+            cout << "10. Search CS\n";
+            cout << "11. Save all data to file\n";
+            cout << "12. Load all data from file\n";
+            cout << "13. View Operation Logs\n";
+            cout << "14. Exit\n";
             cout << "Choose an option: ";
             cin >> choice;
 
@@ -754,14 +1130,16 @@ public:
             case 2: ui.EditPipe(); break;
             case 3: ui.DeletePipe(); break;
             case 4: ui.ViewAllPipes(); break;
-            case 5: ui.AddCompress(); break;
-            case 6: ui.EditCompress(); break;
-            case 7: ui.DeleteCompress(); break;
-            case 8: ui.ViewAllCompress(); break;
-            case 9: ui.SaveData(); break;
-            case 10: ui.LoadData(nextPipeId, nextCompressId); break;
-            case 11: ui.ViewLogs(); break;
-            case 12: return;
+            case 5: ui.SearchPipes(); break;
+            case 6: ui.AddCompress(); break;
+            case 7: ui.EditCompress(); break;
+            case 8: ui.DeleteCompress(); break;
+            case 9: ui.ViewAllCompress(); break;
+            case 10: ui.SearchCompress(); break;
+            case 11: ui.SaveData(); break;
+            case 12: ui.LoadData(nextPipeId, nextCompressId); break;
+            case 13: ui.ViewLogs(); break;
+            case 14: return;
             default: cout << "Invalid option.\n";
             }
         }

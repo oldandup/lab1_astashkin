@@ -1,0 +1,27 @@
+===== DATA BACKUP =====
+Backup time: 2025-11-12 10:06:08
+======================================
+
+===== PIPES DATA =====
+Total pipes: 2
+--------------------------------------
+
+ID: 1
+Name: 3
+Length: 3.00
+Diameter: 3.00
+On repair: Yes
+~~~
+
+ID: 2
+Name: 1
+Length: 1.00
+Diameter: 1.00
+On repair: Yes
+~~~
+
+
+===== COMPRESSOR STATIONS DATA =====
+Total stations: 0
+--------------------------------------
+

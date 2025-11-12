@@ -34,6 +34,8 @@ int nextCompressId = 1;
 void EditPipeField(Pipe& pipe);
 void BatchEditPipes(vector<Pipe>& pipes, const vector<Pipe>& searchResults);
 void SearchPipe(vector<Pipe>& pipes);
+void SaveAllData(const vector<Pipe>& pipes, const vector<Compress>& stations);
+void LoadAllData(vector<Pipe>& pipes, vector<Compress>& stations);
 
 string GetCurrentDateTime() {
     time_t now = time(0);
@@ -70,6 +72,209 @@ void ViewLogs() {
     if (lineCount == 0) {
         cout << "No operations logged yet.\n";
     }
+}
+
+void SaveAllData(const vector<Pipe>& pipes, const vector<Compress>& stations) {
+    ofstream file("data_backup.txt");
+    if (!file.is_open()) {
+        cout << "Error: Could not open file for saving data.\n";
+        LogAction("ERROR: Failed to save all data - file open error");
+        return;
+    }
+
+    file << "===== DATA BACKUP =====\n";
+    file << "Backup time: " << GetCurrentDateTime() << "\n";
+    file << "======================================\n\n";
+
+    // Save Pipes
+    file << "===== PIPES DATA =====\n";
+    file << "Total pipes: " << pipes.size() << "\n";
+    file << "--------------------------------------\n\n";
+    
+    for (const auto& pipe : pipes) {
+        file << "ID: " << pipe.id << "\n";
+        file << "Name: " << pipe.name << "\n";
+        file << "Length: " << fixed << setprecision(2) << pipe.length << "\n";
+        file << "Diameter: " << pipe.diametr << "\n";
+        file << "On repair: " << (pipe.repair ? "Yes" : "No") << "\n";
+        file << "~~~\n\n";
+    }
+
+    file << "\n===== COMPRESSOR STATIONS DATA =====\n";
+    file << "Total stations: " << stations.size() << "\n";
+    file << "--------------------------------------\n\n";
+    
+    // Save Compress Stations
+    for (const auto& station : stations) {
+        file << "ID: " << station.id << "\n";
+        file << "Name: " << station.name << "\n";
+        file << "Quantity: " << station.count << "\n";
+        file << "Working: " << station.count_working << "\n";
+        file << "Classification: " << station.classification << "\n";
+        file << "Active: " << (station.working ? "Yes" : "No") << "\n";
+        file << "~~~\n\n";
+    }
+
+    file.close();
+    
+    cout << "All data saved successfully to data_backup.txt\n";
+    stringstream ss;
+    ss << "SAVED ALL DATA - Pipes: " << pipes.size() << ", CS: " << stations.size() 
+       << " exported to data_backup.txt";
+    LogAction(ss.str());
+}
+
+void LoadAllData(vector<Pipe>& pipes, vector<Compress>& stations) {
+    ifstream file("data_backup.txt");
+    if (!file.is_open()) {
+        cout << "Error: Could not open data_backup.txt. File not found.\n";
+        LogAction("ERROR: Failed to load data - file not found");
+        return;
+    }
+
+    pipes.clear();
+    stations.clear();
+    
+    string line;
+    int loadedPipes = 0;
+    int loadedStations = 0;
+    int maxPipeId = 0;
+    int maxStationId = 0;
+    
+    Pipe currentPipe;
+    Compress currentStation;
+    bool inPipeSection = false;
+    bool inStationSection = false;
+    bool inPipe = false;
+    bool inStation = false;
+
+    while (getline(file, line)) {
+        // Check section headers
+        if (line.find("===== PIPES DATA =====") != string::npos) {
+            inPipeSection = true;
+            inStationSection = false;
+            continue;
+        }
+        if (line.find("===== COMPRESSOR STATIONS DATA =====") != string::npos) {
+            if (inPipe && currentPipe.id > 0) {
+                pipes.push_back(currentPipe);
+                maxPipeId = max(maxPipeId, currentPipe.id);
+                loadedPipes++;
+                inPipe = false;
+            }
+            inPipeSection = false;
+            inStationSection = true;
+            continue;
+        }
+
+        if (line.empty() || line.find("Data backup") != string::npos || 
+            line.find("Total") != string::npos || line.find("------") != string::npos ||
+            line.find("Backup time") != string::npos || line.find("======") != string::npos) {
+            continue;
+        }
+
+        try {
+            if (inPipeSection && line.find("~~~") != string::npos) {
+                if (inPipe && currentPipe.id > 0) {
+                    pipes.push_back(currentPipe);
+                    maxPipeId = max(maxPipeId, currentPipe.id);
+                    loadedPipes++;
+                    inPipe = false;
+                }
+                continue;
+            }
+
+            if (inStationSection && line.find("~~~") != string::npos) {
+                if (inStation && currentStation.id > 0) {
+                    stations.push_back(currentStation);
+                    maxStationId = max(maxStationId, currentStation.id);
+                    loadedStations++;
+                    inStation = false;
+                }
+                continue;
+            }
+
+            if (inPipeSection) {
+                if (line.find("ID: ") == 0) {
+                    if (inPipe && currentPipe.id > 0) {
+                        pipes.push_back(currentPipe);
+                        maxPipeId = max(maxPipeId, currentPipe.id);
+                        loadedPipes++;
+                    }
+                    currentPipe.id = stoi(line.substr(4));
+                    inPipe = true;
+                }
+                else if (line.find("Name: ") == 0 && inPipe) {
+                    currentPipe.name = line.substr(6);
+                }
+                else if (line.find("Length: ") == 0 && inPipe) {
+                    currentPipe.length = stod(line.substr(8));
+                }
+                else if (line.find("Diameter: ") == 0 && inPipe) {
+                    currentPipe.diametr = stod(line.substr(10));
+                }
+                else if (line.find("On repair: ") == 0 && inPipe) {
+                    string status = line.substr(11);
+                    currentPipe.repair = (status == "Yes");
+                }
+            }
+            else if (inStationSection) {
+                if (line.find("ID: ") == 0) {
+                    if (inStation && currentStation.id > 0) {
+                        stations.push_back(currentStation);
+                        maxStationId = max(maxStationId, currentStation.id);
+                        loadedStations++;
+                    }
+                    currentStation.id = stoi(line.substr(4));
+                    inStation = true;
+                }
+                else if (line.find("Name: ") == 0 && inStation) {
+                    currentStation.name = line.substr(6);
+                }
+                else if (line.find("Quantity: ") == 0 && inStation) {
+                    currentStation.count = stoi(line.substr(10));
+                }
+                else if (line.find("Working: ") == 0 && inStation) {
+                    currentStation.count_working = stoi(line.substr(9));
+                }
+                else if (line.find("Classification: ") == 0 && inStation) {
+                    currentStation.classification = line.substr(16);
+                }
+                else if (line.find("Active: ") == 0 && inStation) {
+                    string status = line.substr(8);
+                    currentStation.working = (status == "Yes");
+                }
+            }
+        } catch (...) {
+            LogAction("WARNING: Skipped invalid line while loading data");
+        }
+    }
+
+    // Add last items if exist
+    if (inPipe && currentPipe.id > 0) {
+        pipes.push_back(currentPipe);
+        maxPipeId = max(maxPipeId, currentPipe.id);
+        loadedPipes++;
+    }
+    if (inStation && currentStation.id > 0) {
+        stations.push_back(currentStation);
+        maxStationId = max(maxStationId, currentStation.id);
+        loadedStations++;
+    }
+
+    file.close();
+    
+    nextPipeId = maxPipeId + 1;
+    nextCompressId = maxStationId + 1;
+    
+    cout << "All data loaded successfully!\n";
+    cout << "Pipes loaded: " << loadedPipes << "\n";
+    cout << "CS loaded: " << loadedStations << "\n";
+    
+    stringstream ss;
+    ss << "LOADED ALL DATA - Pipes: " << loadedPipes << ", CS: " << loadedStations 
+       << " imported from data_backup.txt";
+    LogAction(ss.str());
 }
 
 void AddPipe(vector<Pipe>& pipes) {
@@ -1020,8 +1225,10 @@ void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {
         cout << "8. Delete CS\n";
         cout << "9. View all CS\n";
         cout << "10. Search CS\n";
-        cout << "11. View Operation Logs\n";
-        cout << "12. Exit\n";
+        cout << "11. Save all data to file\n";
+        cout << "12. Load all data from file\n";
+        cout << "13. View Operation Logs\n";
+        cout << "14. Exit\n";
         cout << "Choose an option: ";
         cin >> choice;
 
@@ -1064,9 +1271,15 @@ void Menu(vector<Pipe>& pipes, vector<Compress>& stations) {
             SearchCompress(stations);
             break;
         case 11:
-            ViewLogs();
+            SaveAllData(pipes, stations);
             break;
         case 12:
+            LoadAllData(pipes, stations);
+            break;
+        case 13:
+            ViewLogs();
+            break;
+        case 14:
             LogAction("APPLICATION CLOSED");
             return;
         default:

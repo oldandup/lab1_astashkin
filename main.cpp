@@ -184,8 +184,10 @@ public:
     FileManager(Logger& log, const string& filename = "data_backup.txt") 
         : logger(log), backupFile(filename) {}
 
-    void SaveAllData(const PipeManager& pipeManager, const CompressManager& compressManager) {
-        ofstream file(backupFile);
+    void SaveAllData(const PipeManager& pipeManager, const CompressManager& compressManager, const string& customFilename = "") {
+        string filename = customFilename.empty() ? backupFile : customFilename;
+        
+        ofstream file(filename);
         if (!file.is_open()) {
             cout << "Error: Could not open file for saving data.\n";
             logger.Log("ERROR: Failed to save all data - file open error");
@@ -204,19 +206,21 @@ public:
 
         file.close();
         
-        cout << "All data saved successfully to " << backupFile << "\n";
+        cout << "All data saved successfully to " << filename << "\n";
         stringstream ss;
         ss << "SAVED ALL DATA - Pipes: " << pipeManager.GetAll().size() << ", CS: " 
-           << compressManager.GetAll().size() << " exported to " << backupFile;
+           << compressManager.GetAll().size() << " exported to " << filename;
         logger.Log(ss.str());
     }
 
     void LoadAllData(PipeManager& pipeManager, CompressManager& compressManager, 
-                     int& nextPipeId, int& nextCompressId) {
-        ifstream file(backupFile);
+                     int& nextPipeId, int& nextCompressId, const string& customFilename = "") {
+        string filename = customFilename.empty() ? backupFile : customFilename;
+        
+        ifstream file(filename);
         if (!file.is_open()) {
-            cout << "Error: Could not open " << backupFile << ". File not found.\n";
-            logger.Log("ERROR: Failed to load data - file not found");
+            cout << "Error: Could not open " << filename << ". File not found.\n";
+            logger.Log("ERROR: Failed to load data - file not found: " + filename);
             return;
         }
 
@@ -314,7 +318,7 @@ public:
         
         stringstream ss;
         ss << "LOADED ALL DATA - Pipes: " << loadedPipes << ", CS: " << loadedStations 
-           << " imported from " << backupFile;
+           << " imported from " << filename;
         logger.Log(ss.str());
     }
 
@@ -452,6 +456,20 @@ public:
         return results;
     }
 
+    vector<Pipe> SearchPipesByLength(const vector<Pipe>& pipes, double minLength, double maxLength) {
+        vector<Pipe> results;
+        for (const auto& pipe : pipes) {
+            if (pipe.length >= minLength && pipe.length <= maxLength) {
+                results.push_back(pipe);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH PIPE BY LENGTH - Range: " << fixed << setprecision(2) 
+           << minLength << "-" << maxLength << " km - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
     vector<Compress> SearchCompressById(const vector<Compress>& stations, int id) {
         vector<Compress> results;
         for (const auto& station : stations) {
@@ -499,6 +517,37 @@ public:
         }
         stringstream ss;
         ss << "SEARCH CS BY STATUS - Status: " << (working ? "Working" : "Not working")
+           << " - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Compress> SearchCompressByWorkshopPercentage(const vector<Compress>& stations, double minPercent, double maxPercent) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.workshop_count > 0) {
+                double percentage = (double)station.workshop_working / station.workshop_count * 100;
+                if (percentage >= minPercent && percentage <= maxPercent) {
+                    results.push_back(station);
+                }
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH CS BY WORKSHOP PERCENTAGE - Range: " << fixed << setprecision(1)
+           << minPercent << "%-" << maxPercent << "% - Found: " << results.size();
+        logger.Log(ss.str());
+        return results;
+    }
+
+    vector<Compress> SearchCompressByWorkshopCount(const vector<Compress>& stations, int minCount, int maxCount) {
+        vector<Compress> results;
+        for (const auto& station : stations) {
+            if (station.workshop_working >= minCount && station.workshop_working <= maxCount) {
+                results.push_back(station);
+            }
+        }
+        stringstream ss;
+        ss << "SEARCH CS BY WORKING WORKSHOPS - Range: " << minCount << "-" << maxCount 
            << " - Found: " << results.size();
         logger.Log(ss.str());
         return results;
@@ -726,11 +775,37 @@ public:
     }
 
     void SaveData() {
-        fileManager.SaveAllData(pipeManager, compressManager);
+        string filename;
+        cout << "\nEnter filename to save (or press Enter for default 'data_backup.txt'): ";
+        cin.ignore();
+        getline(cin, filename);
+
+        if (filename.empty()) {
+            fileManager.SaveAllData(pipeManager, compressManager);
+        } else {
+            // Add .txt extension if not present
+            if (filename.find('.') == string::npos) {
+                filename += ".txt";
+            }
+            fileManager.SaveAllData(pipeManager, compressManager, filename);
+        }
     }
 
     void LoadData(int& nextPipeId, int& nextCompressId) {
-        fileManager.LoadAllData(pipeManager, compressManager, nextPipeId, nextCompressId);
+        string filename;
+        cout << "\nEnter filename to load (or press Enter for default 'data_backup.txt'): ";
+        cin.ignore();
+        getline(cin, filename);
+
+        if (filename.empty()) {
+            fileManager.LoadAllData(pipeManager, compressManager, nextPipeId, nextCompressId);
+        } else {
+            // Add .txt extension if not present
+            if (filename.find('.') == string::npos) {
+                filename += ".txt";
+            }
+            fileManager.LoadAllData(pipeManager, compressManager, nextPipeId, nextCompressId, filename);
+        }
     }
 
     void ViewLogs() {
@@ -751,7 +826,8 @@ public:
             cout << "2. Search by KM Mark\n";
             cout << "3. Search by Diameter\n";
             cout << "4. Search by Repair Status\n";
-            cout << "5. Back to Main Menu\n";
+            cout << "5. Search by Length Range\n";
+            cout << "6. Back to Main Menu\n";
             cout << "Choose search criteria: ";
             cin >> choice;
 
@@ -776,6 +852,9 @@ public:
                 SearchPipesByRepair();
                 break;
             case 5:
+                SearchPipesByLength();
+                break;
+            case 6:
                 return;
             default:
                 cout << "Invalid option. Please try again.\n";
@@ -797,7 +876,9 @@ public:
             cout << "2. Search by Name\n";
             cout << "3. Search by Classification\n";
             cout << "4. Search by Working Status\n";
-            cout << "5. Back to Main Menu\n";
+            cout << "5. Search by Working Workshops Count\n";
+            cout << "6. Search by Workshop Percentage\n";
+            cout << "7. Back to Main Menu\n";
             cout << "Choose search criteria: ";
             cin >> choice;
 
@@ -822,6 +903,12 @@ public:
                 SearchCompressByStatus();
                 break;
             case 5:
+                SearchCompressByWorkshopCount();
+                break;
+            case 6:
+                SearchCompressByPercentage();
+                break;
+            case 7:
                 return;
             default:
                 cout << "Invalid option. Please try again.\n";
@@ -944,7 +1031,7 @@ private:
             return;
         }
 
-        DisplayPipes(results);
+        DisplayPipesWithEditOption(results);
     }
 
     void SearchPipesByKmMark() {
@@ -959,7 +1046,7 @@ private:
             return;
         }
 
-        DisplayPipes(results);
+        DisplayPipesWithEditOption(results);
     }
 
     void SearchPipesByDiameter() {
@@ -979,7 +1066,7 @@ private:
             return;
         }
 
-        DisplayPipes(results);
+        DisplayPipesWithEditOption(results);
     }
 
     void SearchPipesByRepair() {
@@ -999,7 +1086,37 @@ private:
             return;
         }
 
-        DisplayPipes(results);
+        DisplayPipesWithEditOption(results);
+    }
+
+    void SearchPipesByLength() {
+        double minLength, maxLength;
+        cout << "\nEnter minimum length (km): ";
+        cin >> minLength;
+        if (cin.fail() || minLength < 0) {
+            cout << "Error: Invalid length.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        cout << "Enter maximum length (km): ";
+        cin >> maxLength;
+        if (cin.fail() || maxLength < 0 || maxLength < minLength) {
+            cout << "Error: Invalid length range.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchPipesByLength(pipeManager.GetAll(), minLength, maxLength);
+        if (results.empty()) {
+            cout << "No pipes found with length between " << fixed << setprecision(2)
+                 << minLength << " and " << maxLength << " km\n";
+            return;
+        }
+
+        DisplayPipesWithEditOption(results);
     }
 
     void SearchCompressById() {
@@ -1019,7 +1136,7 @@ private:
             return;
         }
 
-        DisplayCompress(results);
+        DisplayCompressWithEditOption(results);
     }
 
     void SearchCompressByName() {
@@ -1034,7 +1151,7 @@ private:
             return;
         }
 
-        DisplayCompress(results);
+        DisplayCompressWithEditOption(results);
     }
 
     void SearchCompressByClassification() {
@@ -1049,7 +1166,7 @@ private:
             return;
         }
 
-        DisplayCompress(results);
+        DisplayCompressWithEditOption(results);
     }
 
     void SearchCompressByStatus() {
@@ -1069,7 +1186,311 @@ private:
             return;
         }
 
-        DisplayCompress(results);
+        DisplayCompressWithEditOption(results);
+    }
+
+    void SearchCompressByWorkshopCount() {
+        int minCount, maxCount;
+        cout << "\nEnter minimum working workshops: ";
+        cin >> minCount;
+        if (cin.fail() || minCount < 0) {
+            cout << "Error: Invalid count.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        cout << "Enter maximum working workshops: ";
+        cin >> maxCount;
+        if (cin.fail() || maxCount < 0 || maxCount < minCount) {
+            cout << "Error: Invalid count range.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchCompressByWorkshopCount(compressManager.GetAll(), minCount, maxCount);
+        if (results.empty()) {
+            cout << "No CS found with working workshops between " << minCount << " and " << maxCount << "\n";
+            return;
+        }
+
+        DisplayCompressWithEditOption(results);
+    }
+
+    void SearchCompressByPercentage() {
+        double minPercent, maxPercent;
+        cout << "\nEnter minimum working percentage (0-100): ";
+        cin >> minPercent;
+        if (cin.fail() || minPercent < 0 || minPercent > 100) {
+            cout << "Error: Invalid percentage.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        cout << "Enter maximum working percentage (0-100): ";
+        cin >> maxPercent;
+        if (cin.fail() || maxPercent < 0 || maxPercent > 100 || maxPercent < minPercent) {
+            cout << "Error: Invalid percentage range.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        auto results = searchEngine.SearchCompressByWorkshopPercentage(compressManager.GetAll(), minPercent, maxPercent);
+        if (results.empty()) {
+            cout << "No CS found with working percentage between " << fixed << setprecision(1)
+                 << minPercent << "% and " << maxPercent << "%\n";
+            return;
+        }
+
+        DisplayCompressWithEditOption(results);
+    }
+
+    void EditPipeById() {
+        int id;
+        cout << "\nEnter pipe ID to edit: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            logger.Log("ERROR: Failed to edit pipe - invalid ID");
+            return;
+        }
+
+        Pipe* pipe = pipeManager.FindById(id);
+        if (!pipe) {
+            cout << "Error: Pipe not found.\n";
+            logger.Log("ERROR: Pipe not found for editing - ID: " + to_string(id));
+            return;
+        }
+
+        logger.Log("EDIT PIPE STARTED - ID: " + to_string(id) + ", Old Name: " + pipe->km_mark);
+        EditPipeFields(*pipe);
+        logger.Log("EDIT PIPE COMPLETED - ID: " + to_string(id));
+    }
+
+    void EditCompressById() {
+        int id;
+        cout << "\nEnter CS ID to edit: ";
+        cin >> id;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            logger.Log("ERROR: Failed to edit CS - invalid ID");
+            return;
+        }
+
+        Compress* station = compressManager.FindById(id);
+        if (!station) {
+            cout << "Error: CS not found.\n";
+            logger.Log("ERROR: CS not found for editing - ID: " + to_string(id));
+            return;
+        }
+
+        logger.Log("EDIT CS STARTED - ID: " + to_string(id) + ", Old Name: " + station->name);
+        EditCompressFields(*station);
+        logger.Log("EDIT CS COMPLETED - ID: " + to_string(id));
+    }
+
+    void EditSearchResultsPipes(const vector<Pipe>& searchResults) {
+        if (searchResults.empty()) {
+            cout << "No results to edit.\n";
+            return;
+        }
+
+        int choice;
+        while (true) {
+            cout << "\n===== Edit Search Results =====\n";
+            cout << "1. Edit all results\n";
+            cout << "2. Edit specific pipe by index\n";
+            cout << "3. Back to Search Menu\n";
+            cout << "Choose option: ";
+            cin >> choice;
+
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Error: Invalid input.\n";
+                continue;
+            }
+
+            switch (choice) {
+            case 1:
+                EditAllPipeResults(searchResults);
+                break;
+            case 2:
+                EditSpecificPipeResult(searchResults);
+                break;
+            case 3:
+                return;
+            default:
+                cout << "Invalid option. Please try again.\n";
+            }
+        }
+    }
+
+    void EditSearchResultsCompress(const vector<Compress>& searchResults) {
+        if (searchResults.empty()) {
+            cout << "No results to edit.\n";
+            return;
+        }
+
+        int choice;
+        while (true) {
+            cout << "\n===== Edit Search Results =====\n";
+            cout << "1. Edit all results\n";
+            cout << "2. Edit specific CS by index\n";
+            cout << "3. Back to Search Menu\n";
+            cout << "Choose option: ";
+            cin >> choice;
+
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Error: Invalid input.\n";
+                continue;
+            }
+
+            switch (choice) {
+            case 1:
+                EditAllCompressResults(searchResults);
+                break;
+            case 2:
+                EditSpecificCompressResult(searchResults);
+                break;
+            case 3:
+                return;
+            default:
+                cout << "Invalid option. Please try again.\n";
+            }
+        }
+    }
+
+    void EditAllPipeResults(const vector<Pipe>& searchResults) {
+        cout << "\nYou are about to edit all " << searchResults.size() << " pipes.\n";
+        cout << "Confirm? (0 - no, 1 - yes): ";
+        int confirm;
+        cin >> confirm;
+        if (cin.fail() || confirm != 1) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Operation cancelled.\n";
+            return;
+        }
+
+        for (const auto& result : searchResults) {
+            Pipe* pipe = pipeManager.FindById(result.id);
+            if (pipe) {
+                cout << "\n--- Editing Pipe ID: " << pipe->id << " (KM: " << pipe->km_mark << ") ---\n";
+                logger.Log("BATCH EDIT PIPE STARTED - ID: " + to_string(pipe->id));
+                EditPipeFields(*pipe);
+                logger.Log("BATCH EDIT PIPE COMPLETED - ID: " + to_string(pipe->id));
+            }
+        }
+        cout << "\nBatch edit completed!\n";
+    }
+
+    void EditAllCompressResults(const vector<Compress>& searchResults) {
+        cout << "\nYou are about to edit all " << searchResults.size() << " CS.\n";
+        cout << "Confirm? (0 - no, 1 - yes): ";
+        int confirm;
+        cin >> confirm;
+        if (cin.fail() || confirm != 1) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Operation cancelled.\n";
+            return;
+        }
+
+        for (const auto& result : searchResults) {
+            Compress* station = compressManager.FindById(result.id);
+            if (station) {
+                cout << "\n--- Editing CS ID: " << station->id << " (Name: " << station->name << ") ---\n";
+                logger.Log("BATCH EDIT CS STARTED - ID: " + to_string(station->id));
+                EditCompressFields(*station);
+                logger.Log("BATCH EDIT CS COMPLETED - ID: " + to_string(station->id));
+            }
+        }
+        cout << "\nBatch edit completed!\n";
+    }
+
+    void EditSpecificPipeResult(const vector<Pipe>& searchResults) {
+        int index;
+        cout << "\nEnter index of pipe to edit (0-" << (searchResults.size() - 1) << "): ";
+        cin >> index;
+        if (cin.fail() || index < 0 || index >= (int)searchResults.size()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid index.\n";
+            return;
+        }
+
+        Pipe* pipe = pipeManager.FindById(searchResults[index].id);
+        if (!pipe) {
+            cout << "Error: Pipe not found.\n";
+            return;
+        }
+
+        logger.Log("EDIT PIPE FROM SEARCH - ID: " + to_string(pipe->id) + ", Old Name: " + pipe->km_mark);
+        EditPipeFields(*pipe);
+        logger.Log("EDIT PIPE FROM SEARCH COMPLETED - ID: " + to_string(pipe->id));
+    }
+
+    void EditSpecificCompressResult(const vector<Compress>& searchResults) {
+        int index;
+        cout << "\nEnter index of CS to edit (0-" << (searchResults.size() - 1) << "): ";
+        cin >> index;
+        if (cin.fail() || index < 0 || index >= (int)searchResults.size()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Error: Invalid index.\n";
+            return;
+        }
+
+        Compress* station = compressManager.FindById(searchResults[index].id);
+        if (!station) {
+            cout << "Error: CS not found.\n";
+            return;
+        }
+
+        logger.Log("EDIT CS FROM SEARCH - ID: " + to_string(station->id) + ", Old Name: " + station->name);
+        EditCompressFields(*station);
+        logger.Log("EDIT CS FROM SEARCH COMPLETED - ID: " + to_string(station->id));
+    }
+
+    void DisplayPipesWithEditOption(const vector<Pipe>& pipes) {
+        cout << "\n===== Search Results =====\n";
+        for (size_t i = 0; i < pipes.size(); i++) {
+            cout << "[" << i << "] ID: " << pipes[i].id << " | KM: " << pipes[i].km_mark
+                 << " | Length: " << fixed << setprecision(2) << pipes[i].length << " km"
+                 << " | Diameter: " << pipes[i].diametr << " mm"
+                 << " | On repair: " << (pipes[i].repair ? "Yes" : "No") << "\n";
+        }
+        cout << "\nWould you like to edit any of these results? (0 - no, 1 - yes): ";
+        int choice;
+        cin >> choice;
+        if (choice == 1) {
+            EditSearchResultsPipes(pipes);
+        }
+    }
+
+    void DisplayCompressWithEditOption(const vector<Compress>& stations) {
+        cout << "\n===== Search Results =====\n";
+        for (size_t i = 0; i < stations.size(); i++) {
+            cout << "[" << i << "] ID: " << stations[i].id << " | Name: " << stations[i].name
+                 << " | Workshops: " << stations[i].workshop_count
+                 << " | Working: " << stations[i].workshop_working
+                 << " | Class: " << stations[i].classification
+                 << " | Active: " << (stations[i].working ? "Yes" : "No") << "\n";
+        }
+        cout << "\nWould you like to edit any of these results? (0 - no, 1 - yes): ";
+        int choice;
+        cin >> choice;
+        if (choice == 1) {
+            EditSearchResultsCompress(stations);
+        }
     }
 };
 
@@ -1102,12 +1523,12 @@ public:
         while (true) {
             cout << "\n===== Main Menu =====\n";
             cout << "1. Add pipe\n";
-            cout << "2. Edit pipe\n";
+            cout << "2. Edit pipe by ID\n";
             cout << "3. Delete pipe\n";
             cout << "4. View all pipes\n";
             cout << "5. Search pipes\n";
             cout << "6. Add CS\n";
-            cout << "7. Edit CS\n";
+            cout << "7. Edit CS by ID\n";
             cout << "8. Delete CS\n";
             cout << "9. View all CS\n";
             cout << "10. Search CS\n";
@@ -1127,12 +1548,12 @@ public:
 
             switch (choice) {
             case 1: ui.AddPipe(); break;
-            case 2: ui.EditPipe(); break;
+            case 2: ui.EditPipeById(); break;
             case 3: ui.DeletePipe(); break;
             case 4: ui.ViewAllPipes(); break;
             case 5: ui.SearchPipes(); break;
             case 6: ui.AddCompress(); break;
-            case 7: ui.EditCompress(); break;
+            case 7: ui.EditCompressById(); break;
             case 8: ui.DeleteCompress(); break;
             case 9: ui.ViewAllCompress(); break;
             case 10: ui.SearchCompress(); break;
